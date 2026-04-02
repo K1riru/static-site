@@ -1,6 +1,6 @@
 import unittest
 
-from textnode import TextNode, TextType , text_node_to_html_node
+from textnode import TextNode, TextType , text_node_to_html_node, split_nodes_delimiter
 from htmlnode import LeafNode
 
 
@@ -63,5 +63,30 @@ class TestTextNode(unittest.TestCase):
         self.assertEqual(html_node.value, "")
         self.assertEqual(html_node.props, {"src": "https://a.com/image.jpg", "alt": "This is an image"})
 
+
+    def test_unsupported_type(self):
+        node = TextNode("Unsupported", "unsupported_type")
+        with self.assertRaises(Exception) as context:
+            text_node_to_html_node(node)
+        self.assertIn("Unsupported text type: unsupported_type", str(context.exception))
+    def test_split_nodes_delimiter(self):
+        nodes = [TextNode("Hello *world*!", TextType.TEXT)]
+        new_nodes = split_nodes_delimiter(nodes, "*", TextType.BOLD)
+        self.assertEqual(len(new_nodes), 3)
+        self.assertEqual(new_nodes[0], TextNode("Hello ", TextType.TEXT))
+        self.assertEqual(new_nodes[1], TextNode("world", TextType.BOLD))
+        self.assertEqual(new_nodes[2], TextNode("!", TextType.TEXT))
+
+    def test_split_nodes_delimiter_unmatched(self):
+        nodes = [TextNode("Hello *world!", TextType.TEXT)]
+        with self.assertRaises(Exception) as context:
+            split_nodes_delimiter(nodes, "*", TextType.BOLD)
+        self.assertIn("Invalid markdown: unmatched delimiter", str(context.exception))
+
+    def test_split_nodes_delimiter_no_delimiter(self):
+        nodes = [TextNode("Hello world!", TextType.TEXT)]
+        new_nodes = split_nodes_delimiter(nodes, "*", TextType.BOLD)
+        self.assertEqual(len(new_nodes), 1)
+        self.assertEqual(new_nodes[0], TextNode("Hello world!", TextType.TEXT))
 if __name__ == "__main__":
     unittest.main()
