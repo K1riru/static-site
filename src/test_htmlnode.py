@@ -1,6 +1,6 @@
 import unittest
 
-from src.htmlnode import HTMLNode, LeafNode
+from src.htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -40,3 +40,30 @@ class TestLeafNode(unittest.TestCase):
     def test_leaf_no_tag_returns_raw(self):
         node = LeafNode(None, "Just text")
         self.assertEqual(node.to_html(), "Just text")
+
+class TestParentNode(unittest.TestCase):
+    def test_to_html_with_children(self):
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
+
+    def test_to_html_with_grandchildren(self):
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span><b>grandchild</b></span></div>",
+        )
+
+    def test_children_none_raises(self):
+        with self.assertRaises(ValueError):
+            ParentNode("div", None).to_html()
+
+    def test_tag_none_raises(self):
+        with self.assertRaises(ValueError):
+            ParentNode(None, [LeafNode("p", "x")]).to_html()
+
+    def test_empty_children(self):
+        parent = ParentNode("div", [])
+        self.assertEqual(parent.to_html(), "<div></div>")
