@@ -1,6 +1,6 @@
 import unittest
 
-from textnode import TextNode, TextType , text_node_to_html_node, split_nodes_delimiter
+from textnode import TextNode, TextType , text_node_to_html_node, split_nodes_delimiter , extract_markdown_images, extract_markdown_links , split_nodes_image, split_nodes_link, text_to_textnodes
 from htmlnode import LeafNode
 
 
@@ -88,5 +88,151 @@ class TestTextNode(unittest.TestCase):
         new_nodes = split_nodes_delimiter(nodes, "*", TextType.BOLD)
         self.assertEqual(len(new_nodes), 1)
         self.assertEqual(new_nodes[0], TextNode("Hello world!", TextType.TEXT))
+
+
+    def test_extract_markdown_images(self):
+        matches = extract_markdown_images(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        )
+        self.assertListEqual([("image", "https://i.imgur.com/zjjcJKZ.png")], matches)
+
+
+    def test_extract_markdown_links(self):
+        matches = extract_markdown_links(
+            "This is text with a [link](https://www.google.com) and an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        )
+        self.assertListEqual([("link", "https://www.google.com")], matches)
+
+
+
+    def test_extract_markdown_images_no_images(self):
+        matches = extract_markdown_images("This is text with no images")
+        self.assertListEqual([], matches)
+
+
+    def test_extract_markdown_links_no_links(self):
+        matches = extract_markdown_links("This is text with no links")
+        self.assertListEqual([], matches)
+
+    def test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"
+                ),
+            ],
+            new_nodes,
+        )
+
+    def test_split_links(self):
+        node = TextNode(
+            "This is text with a [link](https://www.google.com) and another [second link](https://www.bing.com)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://www.google.com"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second link", TextType.LINK, "https://www.bing.com"
+                ),
+            ],
+            new_nodes,
+        )
+
+    def test_split_links_and_images(self):
+        node = TextNode(
+            "This is text with a [link](https://www.google.com) and an ![image](https://i.imgur.com/zjjcJKZ.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link(split_nodes_image([node]))
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://www.google.com"),
+                TextNode(" and an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+            ],
+            new_nodes,
+        )
+
+    def test_split_links_and_images_no_links_or_images(self):
+        node = TextNode(
+            "This is text with no links or images",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link(split_nodes_image([node]))
+        self.assertListEqual(
+            [
+                TextNode("This is text with no links or images", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+    
+    def test_text_to_textnodes(self):
+        text = "This is a [link](https://www.google.com) and an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("This is a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://www.google.com"),
+                TextNode(" and an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+            ],
+            nodes,
+        )
+    
+    def test_text_to_textnodes_no_links_or_images(self):
+        text = "This is text with no links or images"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("This is text with no links or images", TextType.TEXT),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_bold_and_italic(self):
+        text = "This is **bold** and _italic_"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("bold", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+            ],
+            nodes,
+        )
+
+    def test_text_to_textnodes_all_types(self):
+        text = "This is **bold**, _italic_, a [link](https://www.google.com), and an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("bold", TextType.BOLD),
+                TextNode(", ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(", a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://www.google.com"),
+                TextNode(", and an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+            ],
+            nodes,
+        )
+
+
+    
 if __name__ == "__main__":
     unittest.main()
