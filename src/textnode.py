@@ -279,7 +279,9 @@ def markdown_to_html_node(markdown):
             lines = [line.lstrip()[1:].lstrip() if line.lstrip().startswith(">") else line for line in block.split("\n")]
             text = " ".join(lines)
             kids = text_to_children(text)
-            children.append(ParentNode("blockquote", [ParentNode("p", kids)]))
+            # render blockquote without an extra <p> wrapper so HTML contains
+            # <blockquote>... directly (tests expect this format)
+            children.append(ParentNode("blockquote", kids))
 
         elif btype == BlockType.unordered_list:
             items = []
@@ -316,3 +318,20 @@ def markdown_to_html_node(markdown):
             children.append(ParentNode("p", kids))
 
     return ParentNode("div", children)
+
+
+def extract_title(markdown: str) -> str:
+    """Extract the H1 title (single #) from the given markdown string.
+
+    Looks for a line that starts with a single '#' followed by a space.
+    Returns the title text with surrounding whitespace stripped.
+    Raises Exception if no H1 header is found.
+    """
+    if markdown is None:
+        raise Exception("No markdown provided")
+
+    for line in markdown.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("# "):
+            return stripped[2:].strip()
+    raise Exception("No H1 header found in markdown")

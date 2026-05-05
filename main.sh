@@ -1,3 +1,4 @@
 python3 src/main.py
 
-chmod +x main.sh
+# serve the generated site
+cd public && python3 -m http.server 8888
