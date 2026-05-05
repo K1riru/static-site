@@ -1,4 +1,4 @@
 python3 src/main.py
 
-# serve the generated site
-cd public && python3 -m http.server 8888
+# serve the generated site from docs/
+cd docs && python3 -m http.server 8888
